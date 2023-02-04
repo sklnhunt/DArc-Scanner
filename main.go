@@ -37,7 +37,7 @@ func main() {
                 line := scanner.Text()
                 for _, stringToScan := range stringsFromRules {
                     if strings.Contains(line, stringToScan) {
-                        fmt.Printf("Found '%s' in %s at line %d: %s\n", stringToScan, path, lineNumber, line)
+                        fmt.Printf("[+] Found '%s' in %s at line %d: %s\n", stringToScan, path, lineNumber, line)
                         break
                     }
                 }
