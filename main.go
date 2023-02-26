@@ -2,13 +2,67 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-func displayFilesStatus(rootDirToScan string) map[string]int {
+type Rules struct {
+	Rules []string `json:"rules"`
+}
+
+
+func main() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: go run main.go <dir> <targetDir>")
+		os.Exit(1)
+	}
+
+	// Get the directory name and target directory name from command-line arguments
+	dirName := os.Args[1]
+	targetDir := os.Args[2]
+
+	// Display status of all files
+	displayFilesStatus(dirName)
+
+	// Scan the directory and its subdirectories for code files
+	codeFiles := scanDir(dirName)
+
+	// Read the target strings from the target directory
+	targetStrings, err := readTargetStrings(targetDir)
+	if err != nil {
+		fmt.Printf("Error reading target strings: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Search the code files for the target strings
+	for _, file := range codeFiles {
+		f, err := os.Open(file)
+		if err != nil {
+			fmt.Printf("Error reading file %s: %v\n", file, err)
+			continue
+		}
+		defer f.Close()
+
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			for _, target := range targetStrings {
+				if strings.Contains(scanner.Text(), target) {
+					fmt.Printf("Found target string '%s' in file %s\n", target, file)
+				}
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			fmt.Printf("Error scanning file %s: %v\n", file, err)
+		}
+	}
+}
+
+func displayFilesStatus(rootDirToScan string) {
 
 	countsOfExtension := make(map[string]int)
 	totalLinesInFiles := 0
@@ -44,49 +98,68 @@ func displayFilesStatus(rootDirToScan string) map[string]int {
 	fmt.Printf("Total lines of code: %d\n", totalLinesInFiles)
 	fmt.Println("-------------------------------------------")
 
-    return countsOfExtension
 }
 
-func main() {
-	rootDirToScan := os.Args[1]
-
-	totalExtensions := displayFilesStatus(rootDirToScan)
-    //need to import json files based on totalExtensions Map
-
-	extensionWithRules := map[string][]string{
-		".java": {"printStackTrace", "Readline"},
-		".py":   {"string3", "string4"},
-		".c":    {"string5", "string6"},
-		".cpp":  {"string7", "string8"},
-		".h":    {"string9", "string10"},
-		".go":   {"string11", "string12"},
-		".html": {"string13", "string14"},
-		".js":   {"string15", "string16"},
-		".css":  {"string17", "string18"},
-		".xml":  {"string19", "string20"},
-	}
-
-	filepath.Walk(rootDirToScan, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			stringsFromRules, err := extensionWithRules[filepath.Ext(info.Name())]
-			if !err {
-				return nil
-			}
-			fileToScan, _ := os.Open(path)
-			defer fileToScan.Close()
-			scanner := bufio.NewScanner(fileToScan)
-			lineNumber := 1
-			for scanner.Scan() {
-				line := scanner.Text()
-				for _, stringToScan := range stringsFromRules {
-					if strings.Contains(line, stringToScan) {
-						fmt.Printf("[+] Found '%s' in %s at line %d:=> %s\n", stringToScan, path, lineNumber, line)
-						break
-					}
-				}
-				lineNumber++
-			}
+func scanDir(dirName string) []string {
+	// Get a list of all code files in the directory and its subdirectories
+	var files []string
+	filepath.Walk(dirName, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			fmt.Printf("Error reading directory %s: %v\n", dirName, err)
+			return err
 		}
+
+		if !info.IsDir() && isCodeFile(path) {
+			files = append(files, path)
+		}
+
 		return nil
 	})
+	return files
+}
+
+func isCodeFile(fileName string) bool {
+	// Check if the file has a code extension
+	ext := filepath.Ext(fileName)
+	switch ext {
+	case ".java", ".py", ".html", ".rb":
+		return true
+	}
+	return false
+}
+
+func readTargetStrings(targetDir string) ([]string, error) {
+	// Read the target strings from the target directory
+	var targetStrings []string
+
+	files, err := ioutil.ReadDir(targetDir)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+
+		// Open the JSON file and read its contents
+		jsonFile, err := os.Open(filepath.Join(targetDir, file.Name()))
+		if err != nil {
+			return nil, err
+		}
+		defer jsonFile.Close()
+
+		byteValue, _ := ioutil.ReadAll(jsonFile)
+
+		// Parse the JSON file and extract the target strings
+		var rules Rules
+		err = json.Unmarshal(byteValue, &rules)
+		if err != nil {
+			return nil, err
+		}
+
+		targetStrings = append(targetStrings, rules.Rules...)
+	}
+
+	return targetStrings, nil
 }
