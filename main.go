@@ -14,16 +14,15 @@ type Rules struct {
 	Rules []string `json:"rules"`
 }
 
-
 func main() {
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: go run main.go <dir> <targetDir>")
+		fmt.Println("Usage: go run main.go <Dir> <ruleDir>")
 		os.Exit(1)
 	}
 
-	// Get the directory name and target directory name from command-line arguments
+	// Get the directory name and rule directory name from command-line arguments
 	dirName := os.Args[1]
-	targetDir := os.Args[2]
+	ruleDir := os.Args[2]
 
 	// Display status of all files
 	displayFilesStatus(dirName)
@@ -32,9 +31,9 @@ func main() {
 	codeFiles := scanDir(dirName)
 
 	// Read the target strings from the target directory
-	targetStrings, err := readTargetStrings(targetDir)
+	targetStrings, err := readTargetStrings(ruleDir)
 	if err != nil {
-		fmt.Printf("Error reading target strings: %v\n", err)
+		fmt.Printf("[-] Error reading target strings: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -42,7 +41,7 @@ func main() {
 	for _, file := range codeFiles {
 		f, err := os.Open(file)
 		if err != nil {
-			fmt.Printf("Error reading file %s: %v\n", file, err)
+			fmt.Printf("[-] Error reading file %s: %v\n", file, err)
 			continue
 		}
 		defer f.Close()
@@ -51,7 +50,7 @@ func main() {
 		for scanner.Scan() {
 			for _, target := range targetStrings {
 				if strings.Contains(scanner.Text(), target) {
-					fmt.Printf("Found target string '%s' in file %s\n", target, file)
+					fmt.Printf("[+] Found target string '%s' in file %s\n", target, file)
 				}
 			}
 		}
@@ -92,7 +91,7 @@ func displayFilesStatus(rootDirToScan string) {
 	})
 
 	for ext, count := range countsOfExtension {
-		fmt.Printf("Number of file/files containing %s extension: %d\n", ext, count)
+		fmt.Printf("[*] Number of file/files containing %s extension: %d\n", ext, count)
 	}
 	fmt.Println("-------------------------------------------")
 	fmt.Printf("Total lines of code: %d\n", totalLinesInFiles)
@@ -105,7 +104,7 @@ func scanDir(dirName string) []string {
 	var files []string
 	filepath.Walk(dirName, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Printf("Error reading directory %s: %v\n", dirName, err)
+			fmt.Printf("[-] Error reading directory %s: %v\n", dirName, err)
 			return err
 		}
 
@@ -128,11 +127,11 @@ func isCodeFile(fileName string) bool {
 	return false
 }
 
-func readTargetStrings(targetDir string) ([]string, error) {
+func readTargetStrings(ruleDir string) ([]string, error) {
 	// Read the target strings from the target directory
 	var targetStrings []string
 
-	files, err := ioutil.ReadDir(targetDir)
+	files, err := ioutil.ReadDir(ruleDir)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +142,7 @@ func readTargetStrings(targetDir string) ([]string, error) {
 		}
 
 		// Open the JSON file and read its contents
-		jsonFile, err := os.Open(filepath.Join(targetDir, file.Name()))
+		jsonFile, err := os.Open(filepath.Join(ruleDir, file.Name()))
 		if err != nil {
 			return nil, err
 		}
