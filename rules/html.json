@@ -1,6 +1,7 @@
 {
     "rules": [
         "<h1>",
-        "<script>"
+        "<script>",
+        "<href"
     ]
 }
