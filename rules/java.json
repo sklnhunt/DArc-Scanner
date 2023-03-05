@@ -1,6 +1,10 @@
 {
     "rules": [
         "printStackTrace",
-        "readLine"
+        "readLine",
+        "secretkey",
+        "accesskey",
+        "readObject()",
+        "engine.eval"
     ]
 }

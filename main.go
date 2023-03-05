@@ -15,7 +15,6 @@ type Rules struct {
 	Rules []string `json:"rules"`
 }
 
-
 func main() {
 	// Get the directory name and target directory name using flag
 	dirToScan := flag.String("d","","directory to scan code files")
@@ -37,7 +36,7 @@ func main() {
 	// Read the target strings from the target directory
 	targetStrings, err := readTargetStrings(*dirOfRules)
 	if err != nil {
-		fmt.Printf("Error reading target strings: %v\n", err)
+		fmt.Printf("[-] Error reading target strings: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -45,7 +44,7 @@ func main() {
 	for _, file := range codeFiles {
 		f, err := os.Open(file)
 		if err != nil {
-			fmt.Printf("Error reading file %s: %v\n", file, err)
+			fmt.Printf("[-] Error reading file %s: %v\n", file, err)
 			continue
 		}
 		defer f.Close()
@@ -54,7 +53,7 @@ func main() {
 		for scanner.Scan() {
 			for _, target := range targetStrings {
 				if strings.Contains(scanner.Text(), target) {
-					fmt.Printf("Found target string '%s' in file %s\n", target, file)
+					fmt.Printf("[+] Found target string '%s' in file %s\n", target, file)
 				}
 			}
 		}
@@ -95,7 +94,7 @@ func displayFilesStatus(rootDirToScan string) {
 	})
 
 	for ext, count := range countsOfExtension {
-		fmt.Printf("Number of file/files containing %s extension: %d\n", ext, count)
+		fmt.Printf("[*] Number of file/files containing %s extension: %d\n", ext, count)
 	}
 	fmt.Println("-------------------------------------------")
 	fmt.Printf("Total lines of code: %d\n", totalLinesInFiles)
