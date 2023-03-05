@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,23 +17,25 @@ type Rules struct {
 
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: go run main.go <dir> <targetDir>")
+	// Get the directory name and target directory name using flag
+	dirToScan := flag.String("d","","directory to scan code files")
+	dirOfRules := flag.String("r","","directory containing rules files")
+
+	flag.Parse()
+
+	if *dirToScan == "" || *dirOfRules == "" {
+		fmt.Println("Usage: go run main.go -d <dirToScan> -r <dirWithRules>")
 		os.Exit(1)
 	}
 
-	// Get the directory name and target directory name from command-line arguments
-	dirName := os.Args[1]
-	targetDir := os.Args[2]
-
 	// Display status of all files
-	displayFilesStatus(dirName)
+	displayFilesStatus(*dirToScan)
 
 	// Scan the directory and its subdirectories for code files
-	codeFiles := scanDir(dirName)
+	codeFiles := scanDir(*dirToScan)
 
 	// Read the target strings from the target directory
-	targetStrings, err := readTargetStrings(targetDir)
+	targetStrings, err := readTargetStrings(*dirOfRules)
 	if err != nil {
 		fmt.Printf("Error reading target strings: %v\n", err)
 		os.Exit(1)
@@ -100,12 +103,12 @@ func displayFilesStatus(rootDirToScan string) {
 
 }
 
-func scanDir(dirName string) []string {
+func scanDir(dirToScan string) []string {
 	// Get a list of all code files in the directory and its subdirectories
 	var files []string
-	filepath.Walk(dirName, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(dirToScan, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Printf("Error reading directory %s: %v\n", dirName, err)
+			fmt.Printf("Error reading directory %s: %v\n", dirToScan, err)
 			return err
 		}
 
@@ -128,11 +131,11 @@ func isCodeFile(fileName string) bool {
 	return false
 }
 
-func readTargetStrings(targetDir string) ([]string, error) {
+func readTargetStrings(dirOfRules string) ([]string, error) {
 	// Read the target strings from the target directory
 	var targetStrings []string
 
-	files, err := ioutil.ReadDir(targetDir)
+	files, err := ioutil.ReadDir(dirOfRules)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +146,7 @@ func readTargetStrings(targetDir string) ([]string, error) {
 		}
 
 		// Open the JSON file and read its contents
-		jsonFile, err := os.Open(filepath.Join(targetDir, file.Name()))
+		jsonFile, err := os.Open(filepath.Join(dirOfRules, file.Name()))
 		if err != nil {
 			return nil, err
 		}
